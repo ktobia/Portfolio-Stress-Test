@@ -11,6 +11,54 @@ function App() {
   const [aiInsights, setAiInsights] = useState('');
   const [error, setError] = useState('');
   const [validating, setValidating] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searching, setSearching] = useState(false);
+
+  // Search for stocks as user types
+  const searchStocks = async (query) => {
+    if (!query || query.length < 1) {
+      setSearchResults([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSearching(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/search-stocks?q=${encodeURIComponent(query)}`);
+      const data = await response.json();
+      setSearchResults(data.results || []);
+      setShowSuggestions(data.results && data.results.length > 0);
+    } catch (error) {
+      console.error('Error searching stocks:', error);
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  // Debounce search to avoid too many API calls
+  const handleTickerChange = (value) => {
+    setTicker(value);
+    setError('');
+    
+    // Clear any existing timeout
+    if (window.searchTimeout) {
+      clearTimeout(window.searchTimeout);
+    }
+    
+    // Set new timeout for search
+    window.searchTimeout = setTimeout(() => {
+      searchStocks(value);
+    }, 300); // Wait 300ms after user stops typing
+  };
+
+  // Select a stock from suggestions
+  const selectStock = (stock) => {
+    setTicker(stock.ticker);
+    setSearchResults([]);
+    setShowSuggestions(false);
+  };
 
   // Add stock to portfolio
   const addStock = async () => {
@@ -127,13 +175,41 @@ function App() {
           )}
 
           <div className="input-group">
-            <input
-              type="text"
-              placeholder="Stock Ticker (e.g., AAPL)"
-              value={ticker}
-              onChange={(e) => setTicker(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && addStock()}
-            />
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search stock (e.g., AAPL or Apple)"
+                value={ticker}
+                onChange={(e) => handleTickerChange(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && addStock()}
+                onFocus={() => ticker && searchResults.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                className="ticker-input"
+              />
+              {searching && <div className="search-spinner">🔍</div>}
+              
+              {/* Suggestions Dropdown */}
+              {showSuggestions && searchResults.length > 0 && (
+                <div className="suggestions-dropdown">
+                  {searchResults.map((stock, index) => (
+                    <div
+                      key={index}
+                      className="suggestion-item"
+                      onClick={() => selectStock(stock)}
+                    >
+                      <div className="suggestion-main">
+                        <span className="suggestion-ticker">{stock.ticker}</span>
+                        <span className="suggestion-name">{stock.name}</span>
+                      </div>
+                      <div className="suggestion-details">
+                        <span className="suggestion-price">${stock.price?.toFixed(2)}</span>
+                        <span className="suggestion-sector">{stock.sector}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <input
               type="number"
               placeholder="Shares"

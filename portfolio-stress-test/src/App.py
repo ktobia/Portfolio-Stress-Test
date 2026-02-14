@@ -49,14 +49,7 @@ SCENARIOS = [
 def get_stock_data(ticker):
     """Fetch current stock data using yfinance"""
     try:
-        if ticker == "spx" or ticker == "SPX":
-            stock = yf.Ticker("^GSPC")
-        else:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period="1d")
-            if hist.empty:
-                stock = yf.Ticker("^" + ticker)
-        
+        stock = yf.Ticker(ticker)
         info = stock.info
         current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('regularMarketOpen')
         
@@ -242,6 +235,126 @@ def validate_ticker():
         print(f"Error validating ticker: {e}")
         return jsonify({'valid': False, 'error': str(e)}), 500
 
+@app.route('/api/search-stocks', methods=['GET', 'OPTIONS'])
+@cross_origin()
+def search_stocks():
+    """Search for stocks by ticker or name"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        query = request.args.get('q', '').strip().upper()
+        
+        if not query or len(query) < 1:
+            return jsonify({'results': []})
+        
+        # Expanded list of popular stocks across all sectors
+        common_stocks = [
+            # Top Tech
+            'AAPL', 'MSFT', 'GOOGL', 'GOOG', 'AMZN', 'NVDA', 'META', 'TSLA', 
+            'AVGO', 'ORCL', 'ADBE', 'CRM', 'CSCO', 'ACN', 'AMD', 'INTC', 'IBM',
+            'QCOM', 'TXN', 'INTU', 'NOW', 'AMAT', 'MU', 'LRCX', 'KLAC', 'SNPS',
+            'CDNS', 'MRVL', 'FTNT', 'PANW', 'CRWD', 'DDOG', 'NET', 'ZS',
+            
+            # Finance
+            'BRK.B', 'JPM', 'V', 'MA', 'BAC', 'WFC', 'GS', 'MS', 'BLK', 'SCHW',
+            'AXP', 'C', 'SPGI', 'BX', 'KKR', 'PGR', 'CB', 'MMC', 'ICE', 'CME',
+            
+            # Healthcare
+            'UNH', 'JNJ', 'LLY', 'ABBV', 'MRK', 'TMO', 'ABT', 'DHR', 'PFE',
+            'BMY', 'AMGN', 'GILD', 'CVS', 'CI', 'HUM', 'MCK', 'ELV', 'REGN',
+            'VRTX', 'ISRG', 'SYK', 'BSX', 'MDT', 'ZTS', 'DXCM',
+            
+            # Consumer
+            'WMT', 'HD', 'MCD', 'NKE', 'SBUX', 'TGT', 'LOW', 'TJX', 'COST',
+            'PG', 'KO', 'PEP', 'PM', 'MO', 'MDLZ', 'CL', 'KMB', 'GIS', 'HSY',
+            
+            # Communication
+            'DIS', 'NFLX', 'CMCSA', 'T', 'VZ', 'TMUS', 'CHTR', 'EA', 'TTWO',
+            
+            # Industrial & Energy
+            'BA', 'CAT', 'GE', 'HON', 'UNP', 'RTX', 'LMT', 'DE', 'MMM',
+            'XOM', 'CVX', 'COP', 'SLB', 'EOG', 'MPC', 'PSX', 'VLO',
+            
+            # Auto & Transport
+            'TSLA', 'F', 'GM', 'UBER', 'LYFT', 'DAL', 'UAL', 'AAL', 'LUV',
+            
+            # Aerospace & Defense
+            'RKLB',  # Rocket Lab - Added specifically!
+            'LMT', 'BA', 'RTX', 'GD', 'NOC', 'TDG', 'HWM', 'LHX',
+            
+            # Retail & E-commerce
+            'AMZN', 'BABA', 'JD', 'MELI', 'SE', 'SHOP', 'ETSY', 'W', 'CHWY',
+            
+            # Semiconductors
+            'NVDA', 'TSM', 'AVGO', 'ASML', 'AMD', 'INTC', 'QCOM', 'TXN',
+            'AMAT', 'LRCX', 'KLAC', 'MU', 'NXPI', 'MCHP', 'ADI', 'ON',
+            
+            # Cloud & SaaS
+            'CRM', 'ORCL', 'ADBE', 'NOW', 'INTU', 'WDAY', 'TEAM', 'ZM',
+            'SNOW', 'DDOG', 'CRWD', 'ZS', 'OKTA', 'VEEV', 'BILL',
+            
+            # EV & Clean Energy
+            'TSLA', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'ENPH', 'SEDG',
+            
+            # Crypto & Fintech
+            'COIN', 'SQ', 'PYPL', 'HOOD', 'SOFI', 'AFRM', 'NU',
+            
+            # Biotech
+            'MRNA', 'BNTX', 'NVAX', 'BIIB', 'ILMN', 'INCY', 'BMRN', 'ALNY',
+            
+            # REITs
+            'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'DLR', 'O', 'WELL', 'AVB',
+            
+            # Misc
+            'PLTR', 'RBLX', 'U', 'DASH', 'ABNB', 'SPOT', 'PINS', 'SNAP'
+        ]
+        
+        # Find all stocks that start with the query (priority)
+        matching_tickers = [
+            ticker for ticker in common_stocks 
+            if ticker.startswith(query)
+        ]
+        
+        # If no startswith matches, try contains
+        if not matching_tickers:
+            matching_tickers = [
+                ticker for ticker in common_stocks 
+                if query in ticker
+            ]
+        
+        # Limit results
+        matching_tickers = matching_tickers[:8]
+        
+        # Fetch details for matching stocks
+        results = []
+        for ticker in matching_tickers:
+            stock_data = get_stock_data(ticker)
+            if stock_data and stock_data['current_price'] > 0:
+                results.append({
+                    'ticker': ticker,
+                    'name': stock_data['name'],
+                    'price': stock_data['current_price'],
+                    'sector': stock_data.get('sector', 'Unknown')
+                })
+        
+        # If still no results and query looks complete, try exact yfinance lookup
+        if not results and len(query) >= 1:
+            stock_data = get_stock_data(query)
+            if stock_data and stock_data['current_price'] > 0:
+                results.append({
+                    'ticker': query,
+                    'name': stock_data['name'],
+                    'price': stock_data['current_price'],
+                    'sector': stock_data.get('sector', 'Unknown')
+                })
+        
+        return jsonify({'results': results})
+    
+    except Exception as e:
+        print(f"Error searching stocks: {e}")
+        return jsonify({'results': []}), 500
+
 if __name__ == '__main__':
     print("🚀 Portfolio Stress Testing Backend Starting...")
     print("📊 Dependencies:")
@@ -250,6 +363,7 @@ if __name__ == '__main__':
     print("🌐 CORS enabled for http://localhost:3000")
     print("\nEndpoints:")
     print("   GET  /api/health")
+    print("   GET  /api/search-stocks?q=<query>")
     print("   POST /api/validate-ticker")
     print("   POST /api/stress-test")
     print("\n" + "="*50)
