@@ -307,11 +307,12 @@ def search_stocks():
             'PLD', 'AMT', 'CCI', 'EQIX', 'PSA', 'DLR', 'O', 'WELL', 'AVB',
             
             # Misc
-            'PLTR', 'RBLX', 'U', 'DASH', 'ABNB', 'SPOT', 'PINS', 'SNAP'
+            'PLTR', 'RBLX', 'U', 'DASH', 'ABNB', 'SPOT', 'PINS', 'SNAP',
 
             # Market
-            '^DJI', '^GSPC'
+            '^DJI', '^GSPC', 'GC=F', '^IXIC', '^RUT', '^VIX'
         ]
+        
         
         # Find all stocks that start with the query (priority)
         matching_tickers = [
@@ -325,6 +326,7 @@ def search_stocks():
                 ticker for ticker in common_stocks 
                 if query in ticker
             ]
+        
         
         # Limit results
         matching_tickers = matching_tickers[:8]
