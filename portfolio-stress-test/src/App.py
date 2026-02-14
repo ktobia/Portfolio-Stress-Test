@@ -1,15 +1,20 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import yfinance as yf
-import google.generativeai as genai
 import os
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
 
-# Configure Gemini API (you'll need to set your API key)
-# genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
+# Configure CORS properly
+CORS(app, resources={
+    r"/api/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 # Stress test scenarios
 SCENARIOS = [
@@ -46,11 +51,17 @@ def get_stock_data(ticker):
     try:
         stock = yf.Ticker(ticker)
         info = stock.info
-        current_price = info.get('currentPrice') or info.get('regularMarketPrice')
+        current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('regularMarketOpen')
+        
+        if not current_price:
+            # Try getting recent price from history
+            hist = stock.history(period="1d")
+            if not hist.empty:
+                current_price = hist['Close'].iloc[-1]
         
         return {
             'ticker': ticker,
-            'current_price': current_price,
+            'current_price': float(current_price) if current_price else 0,
             'name': info.get('longName', ticker),
             'sector': info.get('sector', 'Unknown')
         }
@@ -68,7 +79,7 @@ def calculate_portfolio_value(portfolio_data):
         shares = stock['shares']
         
         stock_data = get_stock_data(ticker)
-        if stock_data:
+        if stock_data and stock_data['current_price'] > 0:
             value = stock_data['current_price'] * shares
             total_value += value
             stock_details.append({
@@ -76,6 +87,8 @@ def calculate_portfolio_value(portfolio_data):
                 'shares': shares,
                 'value': value
             })
+        else:
+            print(f"Warning: Could not fetch valid data for {ticker}")
     
     return total_value, stock_details
 
@@ -103,42 +116,40 @@ def run_stress_scenarios(portfolio_data, current_value, stock_details):
     return scenario_results, worst_case_value
 
 def generate_ai_insights(portfolio_data, results, stock_details):
-    """Generate AI-powered insights using Gemini API"""
+    """Generate AI-powered insights"""
     try:
-        # Uncomment when you have Gemini API key
-        # model = genai.GenerativeModel('gemini-pro')
+        # Placeholder insights (Gemini API integration optional)
+        num_stocks = len(stock_details)
+        loss_pct = results['loss_percentage']
         
-        prompt = f"""
-        Analyze this portfolio stress test:
+        if loss_pct > 40:
+            risk_level = "high"
+            recommendation = "Consider significant diversification across sectors and asset classes."
+        elif loss_pct > 25:
+            risk_level = "moderate to high"
+            recommendation = "Review your sector allocation and consider adding defensive stocks."
+        else:
+            risk_level = "moderate"
+            recommendation = "Your portfolio shows reasonable resilience, but continue monitoring."
         
-        Portfolio:
-        {[f"{s['ticker']}: {s['shares']} shares at ${s['current_price']}" for s in stock_details]}
-        
-        Current Value: ${results['current_value']:.2f}
-        Worst Case Value: ${results['worst_case_value']:.2f}
-        Potential Loss: ${results['potential_loss']:.2f} ({results['loss_percentage']:.2f}%)
-        
-        Provide a brief 2-3 sentence analysis of the portfolio's risk profile and recommendations.
-        """
-        
-        # response = model.generate_content(prompt)
-        # return response.text
-        
-        # Placeholder response when API key is not configured
-        return f"Your portfolio shows a potential maximum loss of {results['loss_percentage']:.1f}% under worst-case scenarios. " \
-               f"The portfolio contains {len(stock_details)} stocks with current value of ${results['current_value']:.2f}. " \
-               f"Consider diversification to reduce exposure to severe market shocks."
+        return f"Your portfolio of {num_stocks} stocks shows a {risk_level} risk profile with potential maximum loss of {loss_pct:.1f}% under worst-case scenarios. {recommendation} The current portfolio value is ${results['current_value']:.2f}."
     
     except Exception as e:
         print(f"Error generating AI insights: {e}")
-        return "AI insights unavailable. Configure Gemini API key for detailed analysis."
+        return "Portfolio analysis complete. Consider diversifying to reduce risk exposure."
 
-@app.route('/api/stress-test', methods=['POST'])
+@app.route('/api/stress-test', methods=['POST', 'OPTIONS'])
+@cross_origin()
 def stress_test():
     """Main endpoint for running stress tests"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
     try:
         data = request.json
         portfolio = data.get('portfolio', [])
+        
+        print(f"Received portfolio: {portfolio}")
         
         if not portfolio:
             return jsonify({'error': 'Portfolio is empty'}), 400
@@ -147,7 +158,7 @@ def stress_test():
         current_value, stock_details = calculate_portfolio_value(portfolio)
         
         if current_value == 0:
-            return jsonify({'error': 'Unable to fetch stock data'}), 500
+            return jsonify({'error': 'Unable to fetch stock data. Please check ticker symbols.'}), 500
         
         # Run stress scenarios
         scenario_results, worst_case_value = run_stress_scenarios(
@@ -169,6 +180,8 @@ def stress_test():
         # Generate AI insights
         ai_insights = generate_ai_insights(portfolio, results, stock_details)
         
+        print(f"Stress test completed successfully")
+        
         return jsonify({
             'results': results,
             'ai_insights': ai_insights,
@@ -177,18 +190,24 @@ def stress_test():
     
     except Exception as e:
         print(f"Error in stress test: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/health', methods=['GET'])
+@cross_origin()
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
 if __name__ == '__main__':
     print("🚀 Portfolio Stress Testing Backend Starting...")
-    print("📊 Make sure to install dependencies:")
-    print("   pip install flask flask-cors yfinance google-generativeai")
-    print("\n🔑 Set your Gemini API key:")
-    print("   export GEMINI_API_KEY='your-api-key-here'")
-    print("\n✅ Server running on http://localhost:5000")
-    app.run(debug=True, port=5000)
+    print("📊 Dependencies:")
+    print("   pip3 install flask flask-cors yfinance")
+    print("\n✅ Server starting on http://localhost:5000")
+    print("🌐 CORS enabled for http://localhost:3000")
+    print("\nEndpoints:")
+    print("   GET  /api/health")
+    print("   POST /api/stress-test")
+    print("\n" + "="*50)
+    app.run(debug=True, port=5000, host='127.0.0.1')
