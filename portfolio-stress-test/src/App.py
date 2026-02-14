@@ -49,10 +49,7 @@ SCENARIOS = [
 def get_stock_data(ticker):
     """Fetch current stock data using yfinance"""
     try:
-        if ticker == "spx" or ticker == "SPX" : 
-            stock = yf.Ticker("^GSPC")
-        else:
-            stock = yf.Ticker(ticker)
+        stock = yf.Ticker(ticker)
         info = stock.info
         current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('regularMarketOpen')
         
@@ -203,6 +200,41 @@ def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'timestamp': datetime.now().isoformat()})
 
+@app.route('/api/validate-ticker', methods=['POST', 'OPTIONS'])
+@cross_origin()
+def validate_ticker():
+    """Validate if a ticker symbol exists"""
+    if request.method == 'OPTIONS':
+        return '', 204
+    
+    try:
+        data = request.json
+        ticker = data.get('ticker', '').strip().upper()
+        
+        if not ticker:
+            return jsonify({'valid': False, 'error': 'Ticker is required'}), 400
+        
+        # Try to fetch stock data
+        stock_data = get_stock_data(ticker)
+        
+        if stock_data and stock_data['current_price'] > 0:
+            return jsonify({
+                'valid': True,
+                'ticker': ticker,
+                'name': stock_data['name'],
+                'current_price': stock_data['current_price']
+            })
+        else:
+            return jsonify({
+                'valid': False,
+                'ticker': ticker,
+                'error': 'Ticker not found or no price data available'
+            })
+    
+    except Exception as e:
+        print(f"Error validating ticker: {e}")
+        return jsonify({'valid': False, 'error': str(e)}), 500
+
 if __name__ == '__main__':
     print("🚀 Portfolio Stress Testing Backend Starting...")
     print("📊 Dependencies:")
@@ -211,6 +243,7 @@ if __name__ == '__main__':
     print("🌐 CORS enabled for http://localhost:3000")
     print("\nEndpoints:")
     print("   GET  /api/health")
+    print("   POST /api/validate-ticker")
     print("   POST /api/stress-test")
     print("\n" + "="*50)
     app.run(debug=True, port=5000, host='127.0.0.1')

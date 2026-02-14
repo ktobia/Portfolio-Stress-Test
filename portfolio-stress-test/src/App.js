@@ -9,17 +9,60 @@ function App() {
   const [stressTestResults, setStressTestResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [aiInsights, setAiInsights] = useState('');
+  const [error, setError] = useState('');
+  const [validating, setValidating] = useState(false);
 
   // Add stock to portfolio
-  const addStock = () => {
-    if (ticker && shares && parseFloat(shares) > 0) {
+  const addStock = async () => {
+    // Clear any previous errors
+    setError('');
+
+    // Validate ticker
+    if (!ticker || ticker.trim() === '') {
+      setError('Please enter a stock ticker');
+      return;
+    }
+
+    // Validate shares
+    const sharesNum = parseFloat(shares);
+    if (!shares || isNaN(sharesNum) || sharesNum <= 0) {
+      setError('Please enter a valid number of shares (greater than 0)');
+      return;
+    }
+
+    // Validate ticker exists by checking with backend
+    setValidating(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/validate-ticker', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ticker: ticker.toUpperCase() }),
+      });
+
+      const data = await response.json();
+      
+      if (!data.valid) {
+        setError(`Invalid ticker symbol: ${ticker.toUpperCase()}. Please check and try again.`);
+        setValidating(false);
+        return;
+      }
+
+      // Add to portfolio if valid
       setPortfolio([...portfolio, { 
         ticker: ticker.toUpperCase(), 
-        shares: parseFloat(shares),
+        shares: sharesNum,
         id: Date.now()
       }]);
       setTicker('');
       setShares('');
+      setError('');
+    } catch (error) {
+      console.error('Error validating ticker:', error);
+      setError('Unable to validate ticker. Make sure the backend is running.');
+    } finally {
+      setValidating(false);
     }
   };
 
@@ -31,11 +74,12 @@ function App() {
   // Run stress test
   const runStressTest = async () => {
     if (portfolio.length === 0) {
-      alert('Please add stocks to your portfolio first');
+      setError('Please add stocks to your portfolio first');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
       const response = await fetch('http://localhost:5000/api/stress-test', {
         method: 'POST',
@@ -46,11 +90,17 @@ function App() {
       });
 
       const data = await response.json();
-      setStressTestResults(data.results);
-      setAiInsights(data.ai_insights);
+      
+      if (response.ok) {
+        setStressTestResults(data.results);
+        setAiInsights(data.ai_insights);
+        setError('');
+      } else {
+        setError(data.error || 'Failed to run stress test');
+      }
     } catch (error) {
       console.error('Error running stress test:', error);
-      alert('Failed to run stress test. Make sure the backend is running.');
+      setError('Failed to run stress test. Make sure the backend is running.');
     } finally {
       setLoading(false);
     }
@@ -68,6 +118,14 @@ function App() {
         {/* Portfolio Input Section */}
         <section className="input-section">
           <h2>Build Your Portfolio</h2>
+          
+          {/* Error Message */}
+          {error && (
+            <div className="error-message">
+              {error}
+            </div>
+          )}
+
           <div className="input-group">
             <input
               type="text"
@@ -83,7 +141,9 @@ function App() {
               onChange={(e) => setShares(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && addStock()}
             />
-            <button onClick={addStock} className="btn-add">Add Stock</button>
+            <button onClick={addStock} className="btn-add" disabled={validating}>
+              {validating ? 'Validating...' : 'Add Stock'}
+            </button>
           </div>
 
           {/* Portfolio Display */}
