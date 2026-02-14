@@ -308,6 +308,9 @@ def search_stocks():
             
             # Misc
             'PLTR', 'RBLX', 'U', 'DASH', 'ABNB', 'SPOT', 'PINS', 'SNAP'
+
+            # Market
+            '^DJI', '^GSPC'
         ]
         
         # Find all stocks that start with the query (priority)
