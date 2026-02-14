@@ -1,4 +1,4 @@
-# Potrfolio-Stress-Test
+# Portfolio-Stress-Test
   
   This project is a web-based Portfolio Stress Testing application that allows users to analyze how their stock portfolios would perform under simulated market shock scenarios. 
 Users can input their stock holdings, fetch live market prices, and instantly view the potential impact of events such as market crashes, sector downturns, 
