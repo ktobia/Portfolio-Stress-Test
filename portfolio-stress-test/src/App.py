@@ -49,7 +49,13 @@ SCENARIOS = [
 def get_stock_data(ticker):
     """Fetch current stock data using yfinance"""
     try:
-        stock = yf.Ticker(ticker)
+        ticker_upper = ticker.upper()
+        if ticker_upper == "SPX":
+            stock = yf.Ticker("^GSPC")
+        elif ticker_upper == "GOLD":
+            stock = yf.Ticker("GC=F")
+        else:
+            stock = yf.Ticker(ticker)
         info = stock.info
         current_price = info.get('currentPrice') or info.get('regularMarketPrice') or info.get('regularMarketOpen')
         
