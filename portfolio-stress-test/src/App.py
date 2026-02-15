@@ -3,6 +3,15 @@ from flask_cors import CORS, cross_origin
 import yfinance as yf
 import os
 from datetime import datetime
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Configure Gemini
+genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 app = Flask(__name__)
 
@@ -122,9 +131,50 @@ def run_stress_scenarios(portfolio_data, current_value, stock_details):
     return scenario_results, worst_case_value
 
 def generate_ai_insights(portfolio_data, results, stock_details):
-    """Generate AI-powered insights"""
+    """Generate AI-powered insights using Gemini"""
     try:
-        # Placeholder insights (Gemini API integration optional)
+        # Prepare portfolio summary for AI
+        portfolio_summary = []
+        for stock in stock_details:
+            portfolio_summary.append({
+                'ticker': stock['ticker'],
+                'name': stock['name'],
+                'sector': stock['sector'],
+                'shares': stock['shares'],
+                'value': stock['value'],
+                'percentage': (stock['value'] / results['current_value']) * 100
+            })
+        
+        # Create prompt focused on market crash analysis
+        prompt = f"""You are a financial risk analyst. Analyze how this portfolio would perform during a severe market crash.
+
+Portfolio Overview:
+- Total Value: ${results['current_value']:,.2f}
+- Number of Holdings: {len(stock_details)}
+- Worst Case Scenario Loss: {results['loss_percentage']:.1f}%
+
+Holdings:
+{chr(10).join([f"- {s['ticker']} ({s['name']}): ${s['value']:,.2f} ({s['percentage']:.1f}%), Sector: {s['sector']}" for s in portfolio_summary])}
+
+Stress Test Results:
+{chr(10).join([f"- {sc['name']}: {sc['impact']}% impact" for sc in results['scenarios']])}
+
+Provide a brief analysis (under 150 words) covering:
+1. How these specific stocks typically perform during market crashes
+2. Which holdings are most vulnerable and why
+3. One actionable recommendation to improve crash resilience
+
+Be specific to the actual stocks in this portfolio. Use professional, clear language."""
+        
+        # Call Gemini API
+        response = model.generate_content(prompt)
+        
+        print(f"✅ AI Insights generated successfully")
+        return response.text
+        
+    except Exception as e:
+        print(f"❌ Error generating AI insights: {e}")
+        # Fallback to simple analysis if API fails
         num_stocks = len(stock_details)
         loss_pct = results['loss_percentage']
         
@@ -139,10 +189,6 @@ def generate_ai_insights(portfolio_data, results, stock_details):
             recommendation = "Your portfolio shows reasonable resilience, but continue monitoring."
         
         return f"Your portfolio of {num_stocks} stocks shows a {risk_level} risk profile with potential maximum loss of {loss_pct:.1f}% under worst-case scenarios. {recommendation} The current portfolio value is ${results['current_value']:.2f}."
-    
-    except Exception as e:
-        print(f"Error generating AI insights: {e}")
-        return "Portfolio analysis complete. Consider diversifying to reduce risk exposure."
 
 @app.route('/api/stress-test', methods=['POST', 'OPTIONS'])
 @cross_origin()
@@ -369,7 +415,7 @@ def search_stocks():
 if __name__ == '__main__':
     print("🚀 Portfolio Stress Testing Backend Starting...")
     print("📊 Dependencies:")
-    print("   pip3 install flask flask-cors yfinance")
+    print("   pip3 install flask flask-cors yfinance google-generativeai python-dotenv")
     print("\n✅ Server starting on http://localhost:5000")
     print("🌐 CORS enabled for http://localhost:3000")
     print("\nEndpoints:")
