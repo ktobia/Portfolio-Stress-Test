@@ -25,7 +25,7 @@ function App() {
 
     setSearching(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/search-stocks?q=${encodeURIComponent(query)}`);
+      const response = await fetch(`http://localhost:5001/api/search-stocks?q=${encodeURIComponent(query)}`);
       const data = await response.json();
       setSearchResults(data.results || []);
       setShowSuggestions(data.results && data.results.length > 0);
@@ -81,7 +81,7 @@ function App() {
     // Validate ticker exists by checking with backend
     setValidating(true);
     try {
-      const response = await fetch('http://localhost:5000/api/validate-ticker', {
+      const response = await fetch('http://localhost:5001/api/validate-ticker', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:5000/api/stress-test', {
+      const response = await fetch('http://localhost:5001/api/stress-test', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -273,23 +273,43 @@ function App() {
             <div className="summary-card">
               <h3>Portfolio Summary</h3>
               <p><strong>Current Value:</strong> ${stressTestResults.current_value?.toFixed(2)}</p>
-              <p><strong>Worst Case Value:</strong> ${stressTestResults.worst_case_value?.toFixed(2)}</p>
-              <p className="loss-highlight">
-                <strong>Potential Loss:</strong> ${stressTestResults.potential_loss?.toFixed(2)} 
-                ({stressTestResults.loss_percentage?.toFixed(2)}%)
-              </p>
+              
+              <div className="summary-row">
+                <div className="summary-downside">
+                  <p className="summary-label">⚠️ Downside Risk</p>
+                  <p><strong>Worst Case Value:</strong> ${stressTestResults.worst_case_value?.toFixed(2)}</p>
+                  <p className="loss-highlight">
+                    <strong>Potential Loss:</strong> ${stressTestResults.potential_loss?.toFixed(2)} 
+                    ({stressTestResults.loss_percentage?.toFixed(2)}%)
+                  </p>
+                </div>
+                
+                <div className="summary-upside">
+                  <p className="summary-label">🚀 Upside Potential</p>
+                  <p><strong>Best Case Value:</strong> ${stressTestResults.best_case_value?.toFixed(2)}</p>
+                  <p className="gain-highlight">
+                    <strong>Potential Gain:</strong> ${stressTestResults.potential_gain?.toFixed(2)} 
+                    (+{stressTestResults.gain_percentage?.toFixed(2)}%)
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Scenario Results */}
             <div className="scenarios">
               <h3>Scenario Analysis</h3>
               {stressTestResults.scenarios?.map((scenario, index) => (
-                <div key={index} className="scenario-card">
+                <div 
+                  key={index} 
+                  className={`scenario-card ${scenario.is_positive ? 'positive-scenario' : 'negative-scenario'}`}
+                >
                   <h4>{scenario.name}</h4>
                   <p>{scenario.description}</p>
-                  <p><strong>Impact:</strong> {scenario.impact}%</p>
+                  <p><strong>Impact:</strong> {scenario.impact > 0 ? '+' : ''}{scenario.impact}%</p>
                   <p><strong>Portfolio Value:</strong> ${scenario.portfolio_value?.toFixed(2)}</p>
-                  <p><strong>Loss:</strong> ${scenario.loss?.toFixed(2)}</p>
+                  <p className={scenario.is_positive ? 'gain-text' : 'loss-text'}>
+                    <strong>{scenario.is_positive ? 'Potential Gain' : 'Potential Loss'}:</strong> ${scenario.loss?.toFixed(2)}
+                  </p>
                 </div>
               ))}
             </div>

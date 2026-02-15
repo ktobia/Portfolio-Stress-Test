@@ -94,7 +94,7 @@ def generate_stress_scenarios(stock_details, current_value):
             sectors.add(stock['sector'])
         
         # Create prompt for scenario generation
-        prompt = f"""You are a financial risk analyst. Generate 5 realistic stress test scenarios for this portfolio.
+        prompt = f"""You are a financial risk analyst. Generate 6 realistic market scenarios for this portfolio - both downside risks AND upside opportunities.
 
 Portfolio Overview:
 - Total Value: ${current_value:,.2f}
@@ -104,23 +104,34 @@ Portfolio Overview:
 Holdings:
 {chr(10).join([f"- {s['ticker']} ({s['name']}): {s['percentage']:.1f}%, Sector: {s['sector']}" for s in portfolio_summary])}
 
-Generate 5 stress test scenarios that are:
+Generate 6 scenarios split evenly:
+- 3 DOWNSIDE scenarios (negative impact): Market crashes, corrections, bear markets, etc.
+- 3 UPSIDE scenarios (positive impact): Bull runs, sector booms, favorable policy changes, etc.
+
+Make scenarios:
 1. Relevant to the specific stocks and sectors in this portfolio
 2. Realistic market events that could occur
-3. Varied in severity (from moderate to catastrophic)
-4. Include at least one sector-specific scenario if applicable
+3. Varied in severity (from moderate to extreme)
+4. Include at least one sector-specific scenario for both upside and downside
 
 For each scenario, provide:
-- name: A concise, clear name (e.g., "Tech Sector Correction", "Market Crash")
+- name: A concise, clear name (e.g., "AI Boom", "Tech Correction", "Bull Market Rally")
 - description: A brief description of the event (one sentence)
-- impact: The estimated percentage impact on portfolio value (as a negative number between -10 and -60)
+- impact: The estimated percentage impact on portfolio value
+  * For DOWNSIDE: Use negative numbers between -10 and -60
+  * For UPSIDE: Use positive numbers between +10 and +60
 
-Return ONLY a valid JSON array with 5 scenarios in this exact format:
+Return ONLY a valid JSON array with 6 scenarios in this exact format:
 [
   {{
-    "name": "Scenario Name",
-    "description": "Brief description of the event",
-    "impact": -25
+    "name": "Bull Market Rally",
+    "description": "Strong economic growth drives broad market gains",
+    "impact": 35
+  }},
+  {{
+    "name": "Market Crash",
+    "description": "Severe market downturn similar to 2008 financial crisis",
+    "impact": -40
   }},
   ...
 ]
@@ -140,15 +151,16 @@ Do not include any markdown formatting, code blocks, or explanatory text. Return
         # Parse JSON response
         scenarios = json.loads(response_text)
         
-        print(f"✅ Generated {len(scenarios)} AI-powered stress scenarios")
+        print(f"✅ Generated {len(scenarios)} AI-powered scenarios ({len([s for s in scenarios if s['impact'] > 0])} upside, {len([s for s in scenarios if s['impact'] < 0])} downside)")
         return scenarios
         
     except Exception as e:
         print(f"❌ Error generating scenarios with AI: {e}")
         print(f"Response text: {response_text if 'response_text' in locals() else 'N/A'}")
         
-        # Fallback to basic scenarios if AI fails
+        # Fallback to basic scenarios if AI fails (3 positive, 3 negative)
         return [
+            # Downside scenarios
             {
                 "name": "Market Crash",
                 "description": "Severe market downturn similar to 2008 financial crisis",
@@ -164,15 +176,21 @@ Do not include any markdown formatting, code blocks, or explanatory text. Return
                 "description": "Federal Reserve raises rates aggressively",
                 "impact": -15
             },
+            # Upside scenarios
             {
-                "name": "Mild Recession",
-                "description": "Economic slowdown with moderate market impact",
-                "impact": -20
+                "name": "Bull Market Rally",
+                "description": "Strong economic growth and optimism drive broad market gains",
+                "impact": 35
             },
             {
-                "name": "Black Swan Event",
-                "description": "Unexpected catastrophic event",
-                "impact": -50
+                "name": "Tech Innovation Boom",
+                "description": "Major technological breakthrough drives tech sector surge",
+                "impact": 30
+            },
+            {
+                "name": "Rate Cut Catalyst",
+                "description": "Federal Reserve cuts rates, boosting market sentiment",
+                "impact": 20
             }
         ]
 
@@ -180,24 +198,29 @@ def run_stress_scenarios(scenarios, current_value, stock_details):
     """Run stress test scenarios on portfolio"""
     scenario_results = []
     worst_case_value = current_value
+    best_case_value = current_value
     
     for scenario in scenarios:
         impact = scenario['impact'] / 100
         scenario_value = current_value * (1 + impact)
-        loss = current_value - scenario_value
+        gain_or_loss = scenario_value - current_value
         
         scenario_results.append({
             'name': scenario['name'],
             'description': scenario['description'],
             'impact': scenario['impact'],
             'portfolio_value': scenario_value,
-            'loss': loss
+            'gain_or_loss': gain_or_loss,
+            'loss': abs(gain_or_loss),
+            'is_positive': impact > 0
         })
         
         if scenario_value < worst_case_value:
             worst_case_value = scenario_value
+        if scenario_value > best_case_value:
+            best_case_value = scenario_value
     
-    return scenario_results, worst_case_value
+    return scenario_results, worst_case_value, best_case_value
 
 def generate_ai_insights(portfolio_data, results, stock_details):
     """Generate AI-powered insights using Gemini"""
@@ -214,24 +237,25 @@ def generate_ai_insights(portfolio_data, results, stock_details):
                 'percentage': (stock['value'] / results['current_value']) * 100
             })
         
-        # Create prompt focused on market crash analysis
-        prompt = f"""You are a financial risk analyst. Analyze how this portfolio would perform during a severe market crash.
+        # Create prompt for comprehensive analysis
+        prompt = f"""You are a financial risk analyst. Analyze this portfolio's performance under both market stress and bull market conditions.
 
 Portfolio Overview:
 - Total Value: ${results['current_value']:,.2f}
 - Number of Holdings: {len(stock_details)}
-- Worst Case Scenario Loss: {results['loss_percentage']:.1f}%
+- Downside Risk: {results['loss_percentage']:.1f}%
+- Upside Potential: {results['gain_percentage']:.1f}%
 
 Holdings:
 {chr(10).join([f"- {s['ticker']} ({s['name']}): ${s['value']:,.2f} ({s['percentage']:.1f}%), Sector: {s['sector']}" for s in portfolio_summary])}
 
-Stress Test Results:
-{chr(10).join([f"- {sc['name']}: {sc['impact']}% impact" for sc in results['scenarios']])}
+Scenario Analysis:
+{chr(10).join([f"- {sc['name']}: {sc['impact']:+.0f}% impact" for sc in results['scenarios']])}
 
 Provide a brief analysis (under 150 words) covering:
-1. How these specific stocks typically perform during market crashes
-2. Which holdings are most vulnerable and why
-3. One actionable recommendation to improve crash resilience
+1. How these specific stocks perform in both crash and bull scenarios
+2. Which holdings drive the most upside/downside
+3. One actionable recommendation for risk-reward balance
 
 Be specific to the actual stocks in this portfolio. Use professional, clear language."""
         
@@ -246,18 +270,9 @@ Be specific to the actual stocks in this portfolio. Use professional, clear lang
         # Fallback to simple analysis if API fails
         num_stocks = len(stock_details)
         loss_pct = results['loss_percentage']
+        gain_pct = results['gain_percentage']
         
-        if loss_pct > 40:
-            risk_level = "high"
-            recommendation = "Consider significant diversification across sectors and asset classes."
-        elif loss_pct > 25:
-            risk_level = "moderate to high"
-            recommendation = "Review your sector allocation and consider adding defensive stocks."
-        else:
-            risk_level = "moderate"
-            recommendation = "Your portfolio shows reasonable resilience, but continue monitoring."
-        
-        return f"Your portfolio of {num_stocks} stocks shows a {risk_level} risk profile with potential maximum loss of {loss_pct:.1f}% under worst-case scenarios. {recommendation} The current portfolio value is ${results['current_value']:.2f}."
+        return f"Your portfolio of {num_stocks} stocks shows potential losses of up to {loss_pct:.1f}% in downside scenarios and gains of up to {gain_pct:.1f}% in bull markets. Consider rebalancing to optimize your risk-reward profile. Current portfolio value is ${results['current_value']:,.2f}."
 
 @app.route('/api/stress-test', methods=['POST', 'OPTIONS'])
 @cross_origin()
@@ -282,22 +297,28 @@ def stress_test():
             return jsonify({'error': 'Unable to fetch stock data. Please check ticker symbols.'}), 500
         
         # Generate AI-powered stress scenarios
-        print("🤖 Generating AI-powered stress scenarios...")
+        print("🤖 Generating AI-powered scenarios...")
         scenarios = generate_stress_scenarios(stock_details, current_value)
         
         # Run stress scenarios
-        scenario_results, worst_case_value = run_stress_scenarios(
+        scenario_results, worst_case_value, best_case_value = run_stress_scenarios(
             scenarios, current_value, stock_details
         )
         
         potential_loss = current_value - worst_case_value
         loss_percentage = (potential_loss / current_value) * 100
         
+        potential_gain = best_case_value - current_value
+        gain_percentage = (potential_gain / current_value) * 100
+        
         results = {
             'current_value': current_value,
             'worst_case_value': worst_case_value,
+            'best_case_value': best_case_value,
             'potential_loss': potential_loss,
             'loss_percentage': loss_percentage,
+            'potential_gain': potential_gain,
+            'gain_percentage': gain_percentage,
             'scenarios': scenario_results,
             'stock_details': stock_details
         }
@@ -373,6 +394,9 @@ def search_stocks():
         if not query or len(query) < 1:
             return jsonify({'results': []})
         
+        # Check if query should match index tickers (ones with ^)
+        query_with_caret = '^' + query
+        
         # Expanded list of popular stocks across all sectors
         common_stocks = [
             # Top Tech
@@ -405,7 +429,7 @@ def search_stocks():
             'TSLA', 'F', 'GM', 'UBER', 'LYFT', 'DAL', 'UAL', 'AAL', 'LUV',
             
             # Aerospace & Defense
-            'RKLB',  # Rocket Lab - Added specifically!
+            'RKLB',  # Rocket Lab
             'LMT', 'BA', 'RTX', 'GD', 'NOC', 'TDG', 'HWM', 'LHX',
             
             # Retail & E-commerce
@@ -434,24 +458,22 @@ def search_stocks():
             # Misc
             'PLTR', 'RBLX', 'U', 'DASH', 'ABNB', 'SPOT', 'PINS', 'SNAP',
 
-            # Market
+            # Market Indices
             '^DJI', '^GSPC', 'GC=F', '^IXIC', '^RUT', '^VIX'
         ]
-        
         
         # Find all stocks that start with the query (priority)
         matching_tickers = [
             ticker for ticker in common_stocks 
-            if ticker.startswith(query)
+            if ticker.startswith(query) or ticker.startswith(query_with_caret)
         ]
         
         # If no startswith matches, try contains
         if not matching_tickers:
             matching_tickers = [
                 ticker for ticker in common_stocks 
-                if query in ticker
+                if query in ticker or query_with_caret in ticker
             ]
-        
         
         # Limit results
         matching_tickers = matching_tickers[:8]
@@ -489,7 +511,7 @@ if __name__ == '__main__':
     print("🚀 Portfolio Stress Testing Backend Starting...")
     print("📊 Dependencies:")
     print("   pip3 install flask flask-cors yfinance google-generativeai python-dotenv")
-    print("\n✅ Server starting on http://localhost:5000")
+    print("\n✅ Server starting on http://localhost:5001")
     print("🌐 CORS enabled for http://localhost:3000")
     print("\nEndpoints:")
     print("   GET  /api/health")
@@ -497,7 +519,7 @@ if __name__ == '__main__':
     print("   POST /api/validate-ticker")
     print("   POST /api/stress-test")
     print("\n🤖 AI-Powered Features:")
-    print("   - Dynamic stress scenario generation")
-    print("   - Portfolio-specific risk analysis")
+    print("   - Dynamic scenario generation (3 downside + 3 upside)")
+    print("   - Portfolio-specific risk/reward analysis")
     print("\n" + "="*50)
-    app.run(debug=True, port=5000, host='127.0.0.1')
+    app.run(debug=True, port=5001, host='0.0.0.0')

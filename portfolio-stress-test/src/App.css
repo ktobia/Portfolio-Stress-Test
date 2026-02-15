@@ -329,12 +329,52 @@
   font-size: 1.1rem;
 }
 
+/* Summary row for upside/downside */
+.summary-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.summary-downside,
+.summary-upside {
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.summary-downside {
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid #fc8181;
+}
+
+.summary-upside {
+  background: rgba(255, 255, 255, 0.1);
+  border-left: 4px solid #48bb78;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
 .loss-highlight {
   background: rgba(255, 255, 255, 0.2);
   padding: 1rem;
   border-radius: 8px;
   margin-top: 1rem;
   font-size: 1.2rem !important;
+}
+
+.gain-highlight {
+  background: rgba(72, 187, 120, 0.2);
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 1.2rem !important;
+  color: white;
 }
 
 /* Scenarios */
@@ -349,6 +389,12 @@
   padding: 1.5rem;
   border-radius: 8px;
   margin-bottom: 1rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.scenario-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .scenario-card h4 {
@@ -359,6 +405,27 @@
 .scenario-card p {
   color: #4a5568;
   margin-bottom: 0.3rem;
+}
+
+/* Positive scenario styling */
+.positive-scenario {
+  background: #f0fff4;
+  border-left: 4px solid #48bb78;
+}
+
+.negative-scenario {
+  background: #fff5f5;
+  border-left: 4px solid #f56565;
+}
+
+.gain-text {
+  color: #2f855a;
+  font-weight: 600;
+}
+
+.loss-text {
+  color: #c53030;
+  font-weight: 600;
 }
 
 /* AI Insights */
@@ -378,6 +445,7 @@
 .ai-insights p {
   line-height: 1.6;
   font-size: 1.05rem;
+  white-space: pre-wrap;
 }
 
 /* Responsive Design */
@@ -402,5 +470,9 @@
   
   .suggestions-dropdown {
     max-height: 250px;
+  }
+  
+  .summary-row {
+    grid-template-columns: 1fr;
   }
 }
