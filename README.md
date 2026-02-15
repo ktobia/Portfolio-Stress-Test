@@ -1,4 +1,4 @@
-# Portfolio-Stress-Test
+# Portfolio-Performance-Analysis
   
 A web-based Portfolio Stress Testing application that analyzes how your stock portfolio performs under both bull and bear market scenarios. Built with AI-powered insights using Google Gemini, this tool helps investors understand their portfolio's risk-reward profile through dynamic, personalized stress tests.
 Features
