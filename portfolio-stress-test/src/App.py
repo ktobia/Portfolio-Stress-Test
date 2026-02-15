@@ -5,13 +5,14 @@ import os
 from datetime import datetime
 import google.generativeai as genai
 from dotenv import load_dotenv
+import json
 
 # Load environment variables
 load_dotenv()
 
 # Configure Gemini
 genai.configure(api_key=os.getenv('GEMINI_API_KEY'))
-model = genai.GenerativeModel('gemini-2.5-flash-lite')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 app = Flask(__name__)
 
@@ -24,36 +25,6 @@ CORS(app, resources={
         "supports_credentials": True
     }
 })
-
-# Stress test scenarios
-SCENARIOS = [
-    {
-        "name": "Market Crash",
-        "description": "Severe market downturn similar to 2008 financial crisis",
-        "impact": -40
-    },
-    {
-        "name": "Tech Sector Correction",
-        "description": "Technology sector experiences significant correction",
-        "impact": -25,
-        "sector": "Technology"
-    },
-    {
-        "name": "Interest Rate Shock",
-        "description": "Federal Reserve raises rates aggressively",
-        "impact": -15
-    },
-    {
-        "name": "Mild Recession",
-        "description": "Economic slowdown with moderate market impact",
-        "impact": -20
-    },
-    {
-        "name": "Black Swan Event",
-        "description": "Unexpected catastrophic event",
-        "impact": -50
-    }
-]
 
 def get_stock_data(ticker):
     """Fetch current stock data using yfinance"""
@@ -107,12 +78,110 @@ def calculate_portfolio_value(portfolio_data):
     
     return total_value, stock_details
 
-def run_stress_scenarios(portfolio_data, current_value, stock_details):
+def generate_stress_scenarios(stock_details, current_value):
+    """Generate stress test scenarios using Gemini AI"""
+    try:
+        # Prepare portfolio summary for AI
+        portfolio_summary = []
+        sectors = set()
+        for stock in stock_details:
+            portfolio_summary.append({
+                'ticker': stock['ticker'],
+                'name': stock['name'],
+                'sector': stock['sector'],
+                'percentage': (stock['value'] / current_value) * 100
+            })
+            sectors.add(stock['sector'])
+        
+        # Create prompt for scenario generation
+        prompt = f"""You are a financial risk analyst. Generate 5 realistic stress test scenarios for this portfolio.
+
+Portfolio Overview:
+- Total Value: ${current_value:,.2f}
+- Number of Holdings: {len(stock_details)}
+- Sectors Represented: {', '.join(sectors)}
+
+Holdings:
+{chr(10).join([f"- {s['ticker']} ({s['name']}): {s['percentage']:.1f}%, Sector: {s['sector']}" for s in portfolio_summary])}
+
+Generate 5 stress test scenarios that are:
+1. Relevant to the specific stocks and sectors in this portfolio
+2. Realistic market events that could occur
+3. Varied in severity (from moderate to catastrophic)
+4. Include at least one sector-specific scenario if applicable
+
+For each scenario, provide:
+- name: A concise, clear name (e.g., "Tech Sector Correction", "Market Crash")
+- description: A brief description of the event (one sentence)
+- impact: The estimated percentage impact on portfolio value (as a negative number between -10 and -60)
+
+Return ONLY a valid JSON array with 5 scenarios in this exact format:
+[
+  {{
+    "name": "Scenario Name",
+    "description": "Brief description of the event",
+    "impact": -25
+  }},
+  ...
+]
+
+Do not include any markdown formatting, code blocks, or explanatory text. Return only the raw JSON array."""
+        
+        # Call Gemini API
+        response = model.generate_content(prompt)
+        response_text = response.text.strip()
+        
+        # Clean up response (remove markdown code blocks if present)
+        if response_text.startswith('```json'):
+            response_text = response_text.replace('```json', '').replace('```', '').strip()
+        elif response_text.startswith('```'):
+            response_text = response_text.replace('```', '').strip()
+        
+        # Parse JSON response
+        scenarios = json.loads(response_text)
+        
+        print(f"✅ Generated {len(scenarios)} AI-powered stress scenarios")
+        return scenarios
+        
+    except Exception as e:
+        print(f"❌ Error generating scenarios with AI: {e}")
+        print(f"Response text: {response_text if 'response_text' in locals() else 'N/A'}")
+        
+        # Fallback to basic scenarios if AI fails
+        return [
+            {
+                "name": "Market Crash",
+                "description": "Severe market downturn similar to 2008 financial crisis",
+                "impact": -40
+            },
+            {
+                "name": "Tech Sector Correction",
+                "description": "Technology sector experiences significant correction",
+                "impact": -25
+            },
+            {
+                "name": "Interest Rate Shock",
+                "description": "Federal Reserve raises rates aggressively",
+                "impact": -15
+            },
+            {
+                "name": "Mild Recession",
+                "description": "Economic slowdown with moderate market impact",
+                "impact": -20
+            },
+            {
+                "name": "Black Swan Event",
+                "description": "Unexpected catastrophic event",
+                "impact": -50
+            }
+        ]
+
+def run_stress_scenarios(scenarios, current_value, stock_details):
     """Run stress test scenarios on portfolio"""
     scenario_results = []
     worst_case_value = current_value
     
-    for scenario in SCENARIOS:
+    for scenario in scenarios:
         impact = scenario['impact'] / 100
         scenario_value = current_value * (1 + impact)
         loss = current_value - scenario_value
@@ -212,9 +281,13 @@ def stress_test():
         if current_value == 0:
             return jsonify({'error': 'Unable to fetch stock data. Please check ticker symbols.'}), 500
         
+        # Generate AI-powered stress scenarios
+        print("🤖 Generating AI-powered stress scenarios...")
+        scenarios = generate_stress_scenarios(stock_details, current_value)
+        
         # Run stress scenarios
         scenario_results, worst_case_value = run_stress_scenarios(
-            portfolio, current_value, stock_details
+            scenarios, current_value, stock_details
         )
         
         potential_loss = current_value - worst_case_value
@@ -423,5 +496,8 @@ if __name__ == '__main__':
     print("   GET  /api/search-stocks?q=<query>")
     print("   POST /api/validate-ticker")
     print("   POST /api/stress-test")
+    print("\n🤖 AI-Powered Features:")
+    print("   - Dynamic stress scenario generation")
+    print("   - Portfolio-specific risk analysis")
     print("\n" + "="*50)
     app.run(debug=True, port=5000, host='127.0.0.1')
