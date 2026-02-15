@@ -8,10 +8,14 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #6c7185 0%, #0f0d10 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-image: url("../noirBackground.jpg");
+  background-size: cover;
+  background-repeat: no-repeat;
+
 }
 
 .app-header {
-  background: #2d3748;
+  background: #181d25;
   padding: 2rem;
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);

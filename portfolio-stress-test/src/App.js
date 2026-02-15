@@ -158,8 +158,8 @@ function App() {
     <div className="App">
       {/* Header */}
       <header className="app-header">
-        <h1>📊 Portfolio Stress Testing</h1>
-        <p><i>Analyze your portfolio's resilience to market shocks</i></p>
+        <h1>Portfolio Performance Analysis</h1>
+        <p><i>Analyze your portfolio's potential performance during future events</i></p>
       </header>
 
       <div className="container">
