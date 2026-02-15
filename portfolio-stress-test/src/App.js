@@ -159,7 +159,7 @@ function App() {
       {/* Header */}
       <header className="app-header">
         <h1>📊 Portfolio Stress Testing</h1>
-        <p>Analyze your portfolio's resilience to market shocks</p>
+        <p><i>Analyze your portfolio's resilience to market shocks</i></p>
       </header>
 
       <div className="container">

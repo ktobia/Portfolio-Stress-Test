@@ -6,25 +6,25 @@
 
 .App {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #6c7185 0%, #0f0d10 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .app-header {
-  background: rgba(255, 255, 255, 0.95);
+  background: #2d3748;
   padding: 2rem;
   text-align: center;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .app-header h1 {
-  color: #2d3748;
+  color: rgba(255, 255, 255, 0.95);;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
 }
 
 .app-header p {
-  color: #718096;
+  color: #93a2b8;
   font-size: 1.1rem;
 }
 
@@ -36,26 +36,27 @@
 
 /* Input Section */
 .input-section {
-  background: white;
+  background: rgb(43, 36, 36);
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
+  color: rgba(206, 192, 192, 0.66);
 }
 
 .input-section h2 {
-  color: #2d3748;
+  color: #9db1ce;
   margin-bottom: 1.5rem;
 }
 
 .error-message {
-  background-color: #fed7d7;
-  color: #c53030;
+  color: #d08c8c;
   padding: 1rem;
   border-radius: 8px;
   margin-bottom: 1rem;
-  border-left: 4px solid #fc8181;
   font-weight: 500;
+  background: #452b2b;
+  border-left: 4px solid #f56565;
 }
 
 .input-group {
@@ -106,7 +107,7 @@
   top: calc(100% + 0.5rem);
   left: 0;
   right: 0;
-  background: white;
+  background: #35393f;
   border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   max-height: 300px;
@@ -152,7 +153,7 @@
 .suggestion-ticker {
   font-weight: 700;
   font-size: 1rem;
-  color: #2d3748;
+  color: #cbd2df;
   min-width: 60px;
 }
 
@@ -162,7 +163,7 @@
 
 .suggestion-name {
   font-size: 0.9rem;
-  color: #4a5568;
+  color: #a4a7ae;
   flex: 1;
 }
 
@@ -174,7 +175,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.85rem;
-  color: #718096;
+  color: #a4a7ae;
   margin-top: 0.25rem;
 }
 
@@ -207,7 +208,7 @@
 
 .btn-add {
   padding: 0.75rem 2rem;
-  background: #667eea;
+  background: #107019;
   color: white;
   border: none;
   border-radius: 8px;
@@ -233,35 +234,35 @@
 }
 
 .portfolio-list h3 {
-  color: #2d3748;
+  color: #9db1ce;
   margin-bottom: 1rem;
 }
 
 .portfolio-list table {
   width: 100%;
   border-collapse: collapse;
-  background: #f7fafc;
+  background: #35393f;
   border-radius: 8px;
   overflow: hidden;
 }
 
 .portfolio-list th {
-  background: #edf2f7;
+  background: #35393f;
   padding: 1rem;
   text-align: left;
-  color: #2d3748;
+  color: #c0c4cd;
   font-weight: 600;
 }
 
 .portfolio-list td {
   padding: 1rem;
   border-top: 1px solid #e2e8f0;
-  color: #4a5568;
+  color: #a4a7ae;
 }
 
 .btn-remove {
   padding: 0.5rem 1rem;
-  background: #fc8181;
+  background: #a72b2b;
   color: white;
   border: none;
   border-radius: 6px;
@@ -278,7 +279,7 @@
 .btn-stress-test {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #76767a 0%, #1f1e20 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -300,19 +301,19 @@
 
 /* Results Section */
 .results-section {
-  background: white;
+  background: rgb(43, 36, 36);
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .results-section h2 {
-  color: #2d3748;
+  color: #9db1ce;
   margin-bottom: 1.5rem;
 }
 
 .summary-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #76767a 0%, #1f1e20 100%);
   color: white;
   padding: 2rem;
   border-radius: 12px;
@@ -344,13 +345,13 @@
 }
 
 .summary-downside {
-  background: rgba(255, 255, 255, 0.1);
-  border-left: 4px solid #fc8181;
+  background: #433333;
+  border-left: 4px solid #f56565;
 }
 
 .summary-upside {
-  background: rgba(255, 255, 255, 0.1);
-  border-left: 4px solid #48bb78;
+  background: #3f4f43;
+  border-left: 4px solid #19e16c;
 }
 
 .summary-label {
@@ -361,7 +362,7 @@
 }
 
 .loss-highlight {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(99, 34, 34, 0.2);
   padding: 1rem;
   border-radius: 8px;
   margin-top: 1rem;
@@ -379,7 +380,7 @@
 
 /* Scenarios */
 .scenarios h3 {
-  color: #2d3748;
+  color: #9db1ce;
   margin-bottom: 1rem;
 }
 
@@ -398,23 +399,23 @@
 }
 
 .scenario-card h4 {
-  color: #2d3748;
+  color: #a4a7ae;
   margin-bottom: 0.5rem;
 }
 
 .scenario-card p {
-  color: #4a5568;
+  color: #d6dae2;
   margin-bottom: 0.3rem;
 }
 
 /* Positive scenario styling */
 .positive-scenario {
-  background: #f0fff4;
-  border-left: 4px solid #48bb78;
+  background: #3f4f43;
+  border-left: 4px solid #19e16c;
 }
 
 .negative-scenario {
-  background: #fff5f5;
+  background: #433333;
   border-left: 4px solid #f56565;
 }
 
@@ -430,7 +431,7 @@
 
 /* AI Insights */
 .ai-insights {
-  background: linear-gradient(135deg, #4fd1c5 0%, #38b2ac 100%);
+  background: linear-gradient(135deg, #76767a 0%, #1f1e20 100%);
   color: white;
   padding: 2rem;
   border-radius: 12px;
@@ -474,5 +475,9 @@
   
   .summary-row {
     grid-template-columns: 1fr;
+  }
+
+  #entry-text {
+    color: white;
   }
 }
